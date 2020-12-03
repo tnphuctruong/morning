@@ -1,0 +1,10 @@
+.taskItem {
+	width: 70%;
+	margin-top: 0.2em;
+	border: solid 3px;
+	padding: 0.5em;
+	border-radius: 10px;
+}
+.taskItem label {
+	margin-top: 0;
+}
