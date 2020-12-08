@@ -8,3 +8,10 @@
 .taskItem label {
 	margin-top: 0;
 }
+
+.taskItem h5 , .taskItem.form-label  {
+	margin-bottom: 0;
+}
+.taskItem .form-text {
+	margin-top: 0;
+}

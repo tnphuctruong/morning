@@ -1,35 +1,64 @@
 import React, {Component} from 'react'
-import { Button, Col, Container, Row } from 'react-bootstrap';
+import { Button, Col, Container, Form, Row } from 'react-bootstrap';
 import TaskItem from './TaskItem';
 import Dialog from './Dialog';
+import ToastNotification from './ToastNotification';
+
+import CONSTANT from '../constants/constant';
 
 const server_url = 'http://localhost:3001';
+
 export default class TaskManage extends Component {
 	state = {
 		tasks: [],
+		project: null,
 		deleteIndex: -1,
 		showDialog: false,
 		fileLocked: false
 	}
+
 	get dateVN() {
 		var d = new Date();
 		const dayOfWeek = d.toLocaleDateString('vi-VN', { weekday: 'long'}).split(',')[0];
 		return `${dayOfWeek}, ${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}`;
 	}
+
 	render() {
 		return (
 			<Container>
-				<h3>Developed by Turong</h3>
+				<h3>Made by Turong</h3>
 				<span>Hôm nay:</span>
 				<h4>{this.dateVN}</h4>
 				<Row>
 					<Col>
 						<Button onClick={this.addTask}>Thêm</Button>{' '}
-						<Button variant="success" onClick={(e) => this.hdlRunCommand('dir')}>Cập nhật Excel</Button>{' '}
+						<Button variant="success" onClick={this.hdlLogtime}>Cập nhật Excel</Button>{' '}
+						<Button variant="info" onClick={this.hdlUpdateFile}>SVN Update</Button>{' '}
 						{this.state.fileLocked ?
-						<Button variant="warning" onClick={(e) => this.setState({fileLocked: !this.state.fileLocked})}>Release File</Button>:
-						<Button variant="warning" onClick={(e) => this.setState({fileLocked: !this.state.fileLocked})}>Lock File</Button>
+							<Button variant="warning" onClick={(e) => {
+															this.setState({fileLocked: !this.state.fileLocked});
+															this.hdlLockReleaseFile(true); }
+														}>Release File</Button> :
+							<Button variant="warning" onClick={(e) => {
+															this.setState({fileLocked: !this.state.fileLocked});
+															this.hdlLockReleaseFile(false); }
+													}>Lock File</Button>
 						}
+					</Col>
+				</Row>
+				<Row>
+					<Col md={4} xs={10}>
+						<Form.Group>
+							<Form.Label>Chọn project (案件)</Form.Label>
+							<Form.Control as="select"
+									onChange={(e) => this.setState({project: e.target.value})}>
+								{
+									CONSTANT.project_options.map((value, index) => 
+										<option key={index}>{value}</option>
+									)
+								}
+							</Form.Control>
+						</Form.Group>
 					</Col>
 				</Row>
 				<div style={{padding: "0.3em 0"}}>
@@ -46,22 +75,36 @@ export default class TaskManage extends Component {
 						show={this.state.showDialog}
 						onOK={() => this.hdlDeleteItem(this.state.deleteIndex)}
 						onCancel={(e) => {this.setState({deleteIndex: -1})}}/>
+				<ToastNotification show={false}/>
 			</Container>
 		);
 	}
 
+	/**
+	 * Add new task to UI
+	 */
 	addTask = () => {
 		var tasks = this.state.tasks;
 		tasks.push({name: "", time: "", date: null});
 		this.setState({tasks: tasks});
 	}
 
+	/**
+	 * Remove task item from UI
+	 * @param {Number} index 
+	 */
 	hdlDeleteItem = (index) => {
 		var tasks = this.state.tasks;
 		tasks.splice(index, 1);
 		this.setState({tasks: tasks, deleteindex: -1, showDialog: false});
 	}
 
+	/**
+	 * Update task item in current View
+	 * when user edit an item
+	 * @param {Number} index
+	 * @param {Object} item
+	 */
 	hdlUpdateItem = (index, item) => {
 		var tasks = this.state.tasks;
 		item.date = new Date();
@@ -69,9 +112,13 @@ export default class TaskManage extends Component {
 		this.setState({tasks: tasks});
 	}
 
-	hdlRunCommand = async () => {
+	/**
+	 * Logtime to Excel
+	 */
+	hdlLogtime = async () => {
 		const data = {
-			cellValue: this.generateText(this.state.tasks)
+			project: this.state.project,
+			task_report: this.generateExcelText(this.state.tasks),
 		};
 		console.log(data);
 		const requestOptions = {
@@ -80,24 +127,67 @@ export default class TaskManage extends Component {
 			body: JSON.stringify(data)
 		};
 		try {
-			var response = await fetch(`${server_url}/ZRlogtime`, requestOptions);
+			var response = await fetch(`${server_url}/excel`, requestOptions);
 			var result = await response.json();	
 			if (result.error) {
 				console.error(result.error);
 			} else if (result.data) {
 				console.log(result.data);
 			} else {
-				alert(result);
+				console.log(result);
 			}
 		} catch(e) {
 			alert(e);
 		}
 	}
 
-	generateText = (tasks) => {
+	/**
+	 * Update file in SVN server
+	 */
+	hdlUpdateFile = async () => {
+		try {
+			var response = await fetch(`${server_url}/svn/update`);
+			var result = await response.json();	
+			if (result.error) {
+				console.error(result.error);
+			} else if (result.data) {
+				console.log(result.data);
+			} else {
+				console.log(result);
+			}
+		} catch(e) {
+			alert(e);
+		}
+	}
+
+	/**
+	 * Lock / Unlock file
+	 * @param {Boolean} isFileLocked 
+	 */
+	hdlLockReleaseFile = async (isFileLocked) => {
+		const command = isFileLocked ? 'unlock' : 'lock';
+		try {
+			var response = await fetch(`${server_url}/svn/${command}`);
+			var result = await response.json();	
+			if (result.error) {
+				console.error(result.error);
+			} else if (result.data) {
+				console.log(result.data);
+			} else {
+				console.log(result);
+			}
+		} catch(e) {
+			alert(e);
+		}
+	}
+	/**
+	 * Generate text for logtime
+	 * @param {Object} tasks 
+	 */
+	generateExcelText = (tasks) => {
 		// create a String array of tasks
 		var txtTasks = tasks.map(task => {
-			return `🧁${task.name} ${task.time}h`;
+			return `・${task.name} ${task.time}h`;
 		});
 		return txtTasks.join('\n');
 	}

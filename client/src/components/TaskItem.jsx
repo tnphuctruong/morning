@@ -18,11 +18,11 @@ export default class TaskItem extends Component {
 			<Form className="taskItem">
 				{/* If task does not have full info */}
 				<Form.Label srOnly={titleRendered}>
-				<h4>Chưa đặt tên {this.props.index}</h4>
+				<h5>Chưa đặt tên {this.props.index}</h5>
 				</Form.Label>
 				{/* Render task with working hours */}
 				<Form.Label srOnly={!titleRendered}>
-					<h4 style={{wordBreak: "break-word"}}>{`${this.props.info.name} (${this.props.info.time} h)`}</h4>
+					<h5 style={{wordBreak: "break-word"}}>{`${this.props.info.name} (${this.props.info.time} h)`}</h5>
 				</Form.Label>
 				<Form.Row>
 					<Col lg={6}>

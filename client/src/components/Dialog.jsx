@@ -10,7 +10,7 @@ export default function Dialog(props) {
 		setShow(props.show);
 	}, [props.show]);
 	return (
-		<Modal show={show} onHide={closeModal}>
+		<Modal show={show} onHide={closeModal} backdrop="static">
 			<Modal.Header closeButton>
 				{props.title}
 			</Modal.Header>
