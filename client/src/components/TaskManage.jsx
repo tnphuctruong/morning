@@ -1,12 +1,16 @@
 import React, {Component} from 'react'
-import { Button, Col, Container, Form, Row } from 'react-bootstrap';
+import { Button, Col, Container, Form, Row, Spinner } from 'react-bootstrap';
 import TaskItem from './TaskItem';
 import Dialog from './Dialog';
 import ToastNotification from './ToastNotification';
 
 import CONSTANT from '../constants/constant';
+import './TaskManage.css';
 
-const server_url = 'http://localhost:3001';
+const VARIANT = CONSTANT.variant;
+const ICON = CONSTANT.icon;
+
+const server_url = 'http://localhost:9090';
 
 export default class TaskManage extends Component {
 	state = {
@@ -14,7 +18,12 @@ export default class TaskManage extends Component {
 		project: null,
 		deleteIndex: -1,
 		showDialog: false,
-		fileLocked: false
+		fileLocked: false,
+		isLoading: false,
+		toast: {
+			items: [],
+			showToast: false
+		}
 	}
 
 	get dateVN() {
@@ -25,6 +34,7 @@ export default class TaskManage extends Component {
 
 	render() {
 		return (
+			<>
 			<Container>
 				<h3>Made by Turong</h3>
 				<span>Hôm nay:</span>
@@ -32,7 +42,13 @@ export default class TaskManage extends Component {
 				<Row>
 					<Col>
 						<Button onClick={this.addTask}>Thêm</Button>{' '}
-						<Button variant="success" onClick={this.hdlLogtime}>Cập nhật Excel</Button>{' '}
+						<Button variant="success"
+								onClick={() => {
+										this.setState({isLoading: true});
+										this.hdlLogtime()
+											.then(() => this.setState({isLoading: false}));
+								}}>Cập nhật Excel
+						</Button>{' '}
 						<Button variant="info" onClick={this.hdlUpdateFile}>SVN Update</Button>{' '}
 						{this.state.fileLocked ?
 							<Button variant="warning" onClick={(e) => {
@@ -75,8 +91,26 @@ export default class TaskManage extends Component {
 						show={this.state.showDialog}
 						onOK={() => this.hdlDeleteItem(this.state.deleteIndex)}
 						onCancel={(e) => {this.setState({deleteIndex: -1})}}/>
-				<ToastNotification show={false}/>
+				{
+					this.state.toast.showToast ?
+					<ToastNotification toastList={this.state.toast.items}
+										autoDelete={true}
+										dismissTime={1500}
+										position="top-right"/> : null
+				}
 			</Container>
+			{
+				this.state.isLoading ?
+				<>
+				<div className="spinner-background">
+					<div className="spinner-container">
+						<Spinner animation="border" variant="danger" />
+					</div>
+					<span className="spinner-text">{CONSTANT.msg.executing}</span>
+				</div>
+				</> : null
+			}
+			</>
 		);
 	}
 
@@ -131,13 +165,14 @@ export default class TaskManage extends Component {
 			var result = await response.json();	
 			if (result.error) {
 				console.error(result.error);
+				throw result.error;
 			} else if (result.data) {
 				console.log(result.data);
 			} else {
 				console.log(result);
 			}
 		} catch(e) {
-			alert(e);
+			this.hdlError(e);
 		}
 	}
 
@@ -190,5 +225,25 @@ export default class TaskManage extends Component {
 			return `・${task.name} ${task.time}h`;
 		});
 		return txtTasks.join('\n');
+	}
+
+	/**
+	 * Error handler
+	 * @param {Object} err 
+	 */
+	hdlError = (err) => {
+		const toasts = this.state.toast.items;
+		this.setState(
+			{toast: {
+				showToast: true,
+				items: toasts.concat([
+					{
+						title: err.title || 'Lỗi' ,
+						description: err.msg,
+						variant: VARIANT.ERROR,
+						icon: ICON.ERROR,
+					}]),
+				}
+		});
 	}
 }

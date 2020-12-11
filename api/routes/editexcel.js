@@ -25,18 +25,17 @@ router.post('/', async function(req, res, next) {
 	var wb = new Excel.Workbook();
 	try {
 		const {project, task_report} = req.body;
-		if (!task_report) throw 'Không tìm thấy nội dung task logtim';
-		if (!project) throw 'Tên project không được để trống';
+		if (!project) throw {msg: 'Tên project không được để trống'};
+		if (!task_report) throw {msg: 'Không tìm thấy task để logtime'};
 
 		await wb.xlsx.readFile(filePath);
 
 		var sh = wb.getWorksheet(CONST.excel.sheet);
 		// Get today's row
 		// const currRowNum = Utils.getCurrentRow();
-		const currRowNum = 55;
+		const currRowNum = 56;
 		const currRow = sh.getRow(currRowNum);
 		const lastRow = sh.getRow(currRowNum - 1);
-		console.log(lastRow.getCell(COL.work_time_start));
 		// Set value for today's row
 		currRow.getCell(COL.work_place).value = DEFAULT_VALUE.work_place;
 		currRow.getCell(COL.work_time_start).value = DEFAULT_VALUE.work_time_start;

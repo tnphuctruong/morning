@@ -1,37 +1,75 @@
-import Col from 'react-bootstrap/Col';
-import Row from 'react-bootstrap/Row';
-import Toast from 'react-bootstrap/Toast'
-import Button from 'react-bootstrap/Button'
-import {Collapse} from 'react-bootstrap';
-import { useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 
-export default function ToastNotification(props) {
-	const [show, setShow] = useState(false);
+import './ToastNotification.css';
+
+const Toast = props => {
+	const { toastList, position, autoDelete, dismissTime } = props;
+	const [list, setList] = useState(toastList);
 
 	useEffect(() => {
-		setShow(props.show);
-	}, [props.show]);
+		setList([...toastList]);
+
+		// eslint-disable-next-line
+	}, [toastList]);
+
+	useEffect(() => {
+		const interval = setInterval(() => {
+			if (autoDelete && toastList.length && list.length) {
+				deleteToast(toastList[0].id);
+			}
+		}, dismissTime);
+		
+		return () => {
+			clearInterval(interval);
+		}
+
+		// eslint-disable-next-line
+	}, [toastList, autoDelete, dismissTime, list]);
+
+	const deleteToast = id => {
+		const listItemIndex = list.findIndex(e => e.id === id);
+		const toastListItem = toastList.findIndex(e => e.id === id);
+		list.splice(listItemIndex, 1);
+		toastList.splice(toastListItem, 1);
+		setList([...list]);
+	}
 
 	return (
-		<Row>
-			<Col xs={6}>
-				<Toast onClose={() => setShow(false)} show={show} delay={1000} autohide animation transition={Collapse}>
-					<Toast.Header>
-						<img
-						src="holder.js/20x20?text=%20"
-						className="rounded mr-2"
-						alt=""
-						/>
-						<strong className="mr-auto">Bootstrap</strong>
-						<small>11 mins ago</small>
-					</Toast.Header>
-					<Toast.Body>Woohoo, you're reading this text in a Toast!</Toast.Body>
-				</Toast>
-			</Col>
-			<Col xs={6}>
-				<Button onClick={() => setShow(true)}>Show Toast</Button>
-			</Col>
-		</Row>
+		<>
+			<div className={`notification-container ${position}`}>
+				{
+					list.map((toast, i) =>
+						<div 
+							key={i}
+							className={`notification c-toast ${position} ${toast.variant}`}
+							// style={{ backgroundColor: toast.backgroundColor }}
+						>
+							<button onClick={() => deleteToast(toast.id)}>
+								X
+							</button>
+							<div className="notification-image">
+								<img src={toast.icon} alt="" />
+							</div>
+							<div>
+								<p className="notification-title">{toast.title}</p>
+								<p className="notification-message">
+									{toast.description}
+								</p>
+							</div>
+						</div>
+					)
+				}
+			</div>
+		</>
 	);
-	
 }
+
+Toast.propTypes = {
+	toastList: PropTypes.array.isRequired,
+	position: PropTypes.string,
+	autoDelete: PropTypes.bool,
+	dismissTime: PropTypes.number
+}
+
+export default Toast;
